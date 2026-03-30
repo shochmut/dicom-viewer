@@ -4,7 +4,7 @@ Starting out with a monorepo structure with the following to be determined:
 Front End:
     React and Vite to bootstrap it up
     Cornerstone 3D
-    DICOMweb access --> call backend with a proxy or talk directly to DICOMweb serverr through CORS
+    DICOMweb access --> call backend with a proxy or talk directly to DICOMweb server through CORS
 
 Back End:
     Web API --> FastAPI or Flask
