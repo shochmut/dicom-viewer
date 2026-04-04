@@ -74,6 +74,10 @@
 
 - What happens when [boundary condition]?
 - How does system handle [error scenario]?
+- How does the feature behave when DICOM metadata is incomplete, malformed, or
+  comes from an unavailable source?
+- If real patient data is involved, how are PHI exposure, retention, and access
+  boundaries handled?
 
 ## Requirements *(mandatory)*
 
@@ -89,6 +93,10 @@
 - **FR-003**: Users MUST be able to [key interaction, e.g., "reset their password"]
 - **FR-004**: System MUST [data requirement, e.g., "persist user preferences"]
 - **FR-005**: System MUST [behavior, e.g., "log all security events"]
+- **FR-XXX**: System MUST define any changed frontend/backend or external DICOM
+  interface contract in a versioned artifact or explicit request/response example.
+- **FR-XXX**: System MUST describe loading, error, and degraded-mode behavior for
+  slow, missing, or oversized imaging data whenever those conditions apply.
 
 *Example of marking unclear requirements:*
 
@@ -113,6 +121,8 @@
 - **SC-002**: [Measurable metric, e.g., "System handles 1000 concurrent users without degradation"]
 - **SC-003**: [User satisfaction metric, e.g., "90% of users successfully complete primary task on first attempt"]
 - **SC-004**: [Business metric, e.g., "Reduce support tickets related to [X] by 50%"]
+- **SC-XXX**: [Viewer or API responsiveness metric tied to the feature, e.g.,
+  "Primary viewport renders the selected series within 2 seconds for the target dataset"]
 
 ## Assumptions
 
@@ -126,3 +136,5 @@
 - [Assumption about scope boundaries, e.g., "Mobile support is out of scope for v1"]
 - [Assumption about data/environment, e.g., "Existing authentication system will be reused"]
 - [Dependency on existing system/service, e.g., "Requires access to the existing user profile API"]
+- [Assumption about diagnostic status and whether PHI or production PACS data is
+  out of scope unless explicitly approved]

@@ -1,50 +1,105 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+<!--
+Sync Impact Report
+- Version change: 0.0.0 -> 1.0.0
+- Modified principles:
+  - Template placeholder -> I. Clinical Safety Boundaries
+  - Template placeholder -> II. Contract-First Interfaces
+  - Template placeholder -> III. Verification Before Merge
+  - Template placeholder -> IV. Responsive Viewer Performance
+  - Template placeholder -> V. Incremental Simplicity
+- Added sections:
+  - Technical Guardrails
+  - Delivery Workflow
+- Removed sections:
+  - None
+- Templates requiring updates:
+  - ✅ updated: .specify/templates/plan-template.md
+  - ✅ updated: .specify/templates/spec-template.md
+  - ✅ updated: .specify/templates/tasks-template.md
+- Follow-up TODOs:
+  - None
+-->
+# DICOM Viewer Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Clinical Safety Boundaries
+This repository MUST remain explicitly non-diagnostic unless a feature spec says
+otherwise and names the required validation standard. Features that display,
+transform, or analyze DICOM data MUST preserve source fidelity, identify derived
+data clearly, and avoid claims that imply clinical approval. Protected health
+information handling, retention, and transmission decisions MUST be stated in
+the spec whenever real patient data is in scope. Rationale: imaging software can
+create clinical risk through ambiguity long before it reaches production scale.
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+### II. Contract-First Interfaces
+Every change that affects communication between frontend, backend, browser-side
+imaging libraries, or external DICOM sources MUST define the contract first.
+The governing artifact may be an API schema, typed payload definition, adapter
+interface, or documented request/response example, but it MUST be versioned with
+the feature and reflected in implementation. Rationale: viewer work crosses
+multiple runtime boundaries, and integration failures are more expensive than
+local defects.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### III. Verification Before Merge
+Behavior changes MUST ship with executable verification at the smallest useful
+scope. Backend changes require automated tests where practical and MUST pass
+`ruff` and `mypy`; frontend changes MUST pass `eslint` and `vite build`; any
+contract change MUST add or update an integration or contract test. A task is
+not complete until the author records the commands run and the outcome. Rationale:
+this repo mixes Python, TypeScript, and imaging dependencies, so regressions must
+be caught by tooling rather than memory.
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+### IV. Responsive Viewer Performance
+Interactive viewer flows MUST protect responsiveness on typical developer
+hardware. New rendering, parsing, or study-loading paths MUST document expected
+latency, memory pressure, and failure behavior when data is incomplete, large,
+or slow to arrive. Long-running work MUST be moved off the main UI interaction
+path or surfaced with explicit loading/error states. Rationale: a viewer that
+technically works but stalls under realistic imaging workloads is not acceptable.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### V. Incremental Simplicity
+Work MUST be delivered as the thinnest vertical slice that proves value across
+the monorepo. Prefer simple adapters, direct data flow, and existing framework
+capabilities over speculative abstractions, broad plugin systems, or premature
+microservices. Any added complexity needs a written justification in the plan.
+Rationale: this repository is a learning and exploration sandbox, and clarity is
+more valuable than architectural ambition.
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+## Technical Guardrails
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+- Frontend work MUST stay within the established React + Vite application unless
+  a spec approves a structural change.
+- Backend work MUST stay within the established FastAPI service and Python 3.12
+  toolchain unless a spec approves a structural change.
+- DICOM-facing features MUST state whether they rely on local files, DICOMweb,
+  DIMSE, or a proxy layer, and MUST describe the fallback behavior when the data
+  source is unavailable.
+- User-facing features MUST document configuration requirements in repository
+  docs or the feature quickstart before completion.
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+## Delivery Workflow
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+- Every non-trivial feature MUST have `spec.md`, `plan.md`, and `tasks.md`
+  artifacts before implementation starts.
+- Specs MUST cover user scenarios, safety/privacy edge cases, interface changes,
+  and measurable success criteria.
+- Plans MUST pass the Constitution Check by naming affected contracts, required
+  verification, performance expectations, and any justified complexity.
+- Tasks MUST be organized by user story, include exact file paths, and contain
+  explicit verification and documentation tasks when those are required by the
+  feature.
+- Code review or self-review MUST confirm constitution compliance before merge.
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+This constitution overrides conflicting local habits and template defaults.
+Amendments require a documented rationale, updates to dependent templates, and a
+version bump recorded in the Sync Impact Report. Versioning follows semantic
+rules for governance: MAJOR for incompatible principle changes or removals, MINOR
+for new principles or materially expanded requirements, and PATCH for wording
+clarifications that do not change expected behavior. Compliance reviews MUST
+occur during planning and again before merge, with violations either corrected or
+explicitly justified in the implementation plan.
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+**Version**: 1.0.0 | **Ratified**: 2026-04-04 | **Last Amended**: 2026-04-04

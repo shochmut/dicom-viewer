@@ -31,7 +31,16 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+- Clinical safety boundaries identified: confirm diagnostic status, PHI handling,
+  and whether derived data needs explicit labeling.
+- Contract-first scope identified: list every frontend/backend, viewer-library,
+  and external DICOM contract affected by this feature.
+- Verification plan defined: name required `ruff`, `mypy`, `eslint`, `vite build`,
+  and any unit, integration, or contract tests.
+- Performance expectations defined: document expected latency, memory pressure,
+  and degraded-mode behavior for realistic study sizes.
+- Complexity justified: explain any new abstraction, service boundary, or
+  dependency that is not the simplest viable slice.
 
 ## Project Structure
 
