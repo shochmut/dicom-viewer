@@ -5,3 +5,4 @@ backend/sample_dicom/**/*.dcm
 backend/sample_dicom/**/*.dicom
 backend/**/__pycache__/
 *.pyc
+.agents/

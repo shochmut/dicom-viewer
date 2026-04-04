@@ -11,12 +11,13 @@ dependencies = [
     "fastapi (>=0.116.1,<0.117.0)",
     "uvicorn (>=0.35.0,<0.36.0)",
     "pydicom (>=3.0.1,<4.0.0)",
+    "pydantic (>=2.0.0,<3.0.0)",
     "pynetdicom (>=3.0.4,<4.0.0)",
     "numpy (>=2.3.2,<3.0.0)"
 ]
-package-mode = false
 
 [tool.poetry]
+packages = [{ include = "app" }]
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.12.10"

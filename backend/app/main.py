@@ -1,43 +1,48 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-import pydicom
-from pathlib import Path
-from typing import List
 
-app = FastAPI(title="Viewer API")
+from app.api.router import api_router
+from app.config import get_settings
+from app.schemas import HealthResponse
 
-# Allow the Vite dev server and your deployed origin
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
-@app.get("/healthz")
-def healthz():
-    return {"ok": True}
+def create_app() -> FastAPI:
+    settings = get_settings()
 
-@app.get("/local-dicom/files")
-def list_local_dicom() -> List[str]:
-    # demo: enumerate .dcm files from a local folder
-    folder = Path("./sample_dicom")
-    if not folder.exists():
-        return []
-    return [str(p.name) for p in folder.glob("*.dcm")]
+    app = FastAPI(
+        title=settings.app_name,
+        version=settings.version,
+        summary="API and DICOM utilities for the dicom-viewer monorepo",
+    )
 
-@app.get("/local-dicom/metadata/{filename}")
-def get_metadata(filename: str):
-    path = Path("./sample_dicom") / filename
-    if not path.exists():
-        raise HTTPException(status_code=404, detail="Not found")
-    ds = pydicom.dcmread(path, stop_before_pixels=True, force=True)
-    # Return a JSON-safe subset
-    return {
-        "SOPInstanceUID": ds.get("SOPInstanceUID", None),
-        "StudyInstanceUID": ds.get("StudyInstanceUID", None),
-        "SeriesInstanceUID": ds.get("SeriesInstanceUID", None),
-        "Modality": ds.get("Modality", None),
-        "PatientID": ds.get("PatientID", None),
-    }
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.cors_origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+    app.include_router(api_router, prefix=settings.api_prefix)
+
+    @app.get("/", tags=["meta"])
+    def read_root() -> dict[str, str]:
+        return {
+            "name": settings.app_name,
+            "api_prefix": settings.api_prefix,
+            "docs_url": "/docs",
+        }
+
+    @app.get("/healthz", include_in_schema=False, response_model=HealthResponse)
+    def read_healthz() -> HealthResponse:
+        return HealthResponse(
+            status="ok",
+            service=settings.app_name,
+            version=settings.version,
+            dicom_catalog_ready=settings.dicom_sample_dir.exists(),
+        )
+
+    return app
+
+
+app = create_app()
