@@ -12,7 +12,7 @@ const viewerModes: Array<{ id: ViewerMode; label: string; detail: string }> = [
 const backlogItems = [
   'Attach a Cornerstone 3D rendering engine to the viewport mount point.',
   'Wire DICOMweb study retrieval through the FastAPI proxy or direct CORS mode.',
-  'Add measurement, annotations, and future stress-strain analysis workflows.',
+  'Add measurement, annotations, and future exploratory stress-strain workflows.',
 ]
 
 function formatStudyDate(studyDate: string | null): string {
@@ -87,11 +87,11 @@ function App() {
     <main className="app-shell">
       <header className="hero">
         <div className="hero-copy">
-          <p className="eyebrow">Medical Imaging Sandbox</p>
+          <p className="eyebrow">Non-Diagnostic Imaging Sandbox</p>
           <h1>{apiConfig?.viewerTitle ?? 'DICOM Workbench'}</h1>
           <p className="hero-text">
             React + Vite viewer shell paired with a FastAPI service for local DICOM cataloging,
-            future DICOMweb proxying, and downstream analysis experiments.
+            future DICOMweb proxying, and exploratory analysis experiments.
           </p>
           <div className="hero-meta">
             <span className={`status-pill status-pill--${connectionState}`}>{connectionLabel}</span>

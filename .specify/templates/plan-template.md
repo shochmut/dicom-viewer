@@ -32,7 +32,8 @@
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
 - Clinical safety boundaries identified: confirm diagnostic status, PHI handling,
-  and whether derived data needs explicit labeling.
+  whether derived data needs explicit labeling, and how user/API text stays
+  explicitly non-diagnostic.
 - Contract-first scope identified: list every frontend/backend, viewer-library,
   and external DICOM contract affected by this feature.
 - Verification plan defined: name required `ruff`, `mypy`, `eslint`, `vite build`,

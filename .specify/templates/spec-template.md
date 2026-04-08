@@ -76,6 +76,8 @@
 - How does system handle [error scenario]?
 - How does the feature behave when DICOM metadata is incomplete, malformed, or
   comes from an unavailable source?
+- If derived measurements, model outputs, or research workflows are exposed, how
+  are they labeled as exploratory and non-diagnostic?
 - If real patient data is involved, how are PHI exposure, retention, and access
   boundaries handled?
 
@@ -95,6 +97,9 @@
 - **FR-005**: System MUST [behavior, e.g., "log all security events"]
 - **FR-XXX**: System MUST define any changed frontend/backend or external DICOM
   interface contract in a versioned artifact or explicit request/response example.
+- **FR-XXX**: System MUST label derived measurements, model outputs, and
+  exploratory workflow outputs as non-diagnostic unless an approved validation
+  standard is explicitly in scope.
 - **FR-XXX**: System MUST describe loading, error, and degraded-mode behavior for
   slow, missing, or oversized imaging data whenever those conditions apply.
 

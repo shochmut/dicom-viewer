@@ -1,13 +1,15 @@
 # dicom-viewer
 
-Personal sandbox for learning modern DICOM viewer tooling in a monorepo setup.
+Personal non-diagnostic sandbox for learning modern DICOM viewer tooling in a
+monorepo setup.
 
 ## Stack
 
 - Frontend: React + Vite viewer shell with a reserved Cornerstone 3D mount point
 - Backend: FastAPI service for health/config endpoints and local DICOM catalog scanning
 - DICOM access: DICOMweb proxy or direct browser access depending on CORS and deployment
-- Future analysis: stress-strain modeling, measurements, and diagnostic workflows
+- Future analysis: stress-strain modeling, measurements, and exploratory
+  workflow research
 - PACS target: dcm4chee or another DICOMweb-capable archive
 
 ## Repository Layout
@@ -46,4 +48,5 @@ poetry run uvicorn app.main:app --reload
 
 1. Initialize Cornerstone 3D in the `#cornerstone-viewport` element.
 2. Add WADO-RS/QIDO-RS proxy endpoints for a real DICOMweb source.
-3. Layer in viewer tools, annotations, and analysis pipelines.
+3. Layer in viewer tools, annotations, and exploratory analysis pipelines with
+   explicit non-diagnostic labeling.

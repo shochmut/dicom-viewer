@@ -1,6 +1,9 @@
 # Frontend
 
-React + Vite shell for the DICOM viewer workspace.
+React + Vite shell for the non-diagnostic DICOM viewer workspace.
+
+Any surfaced analysis or measurement workflows remain exploratory unless a
+feature explicitly defines the required validation standard.
 
 ## Environment
 

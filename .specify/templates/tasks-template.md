@@ -71,7 +71,8 @@ Examples of foundational tasks (adjust based on your project):
 - [ ] T008 Configure error handling and logging infrastructure
 - [ ] T009 Setup environment configuration management
 - [ ] T010 Capture affected contracts, performance targets, and safety/privacy
-  constraints in feature artifacts
+  constraints in feature artifacts, including non-diagnostic labeling when
+  derived outputs are surfaced
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -99,7 +100,8 @@ Examples of foundational tasks (adjust based on your project):
   implementation path (depends on T013 when applicable)
 - [ ] T015 [US1] Implement the user-facing workflow in the exact frontend or
   backend file path
-- [ ] T016 [US1] Add validation, error handling, and loading/degraded states
+- [ ] T016 [US1] Add validation, error handling, loading/degraded states, and
+  any required non-diagnostic labeling
 - [ ] T017 [US1] Update contract artifacts, examples, or typed payloads
 - [ ] T018 [US1] Document verification commands and outcomes for this story
 
@@ -124,7 +126,8 @@ Examples of foundational tasks (adjust based on your project):
 - [ ] T021 [P] [US2] Create or update domain model in the exact implementation path
 - [ ] T022 [US2] Implement the primary service, hook, or endpoint
 - [ ] T023 [US2] Implement the user-facing workflow in the exact file path
-- [ ] T024 [US2] Update contract artifacts and degraded-mode handling
+- [ ] T024 [US2] Update contract artifacts, degraded-mode handling, and any
+  required non-diagnostic labeling
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently
 

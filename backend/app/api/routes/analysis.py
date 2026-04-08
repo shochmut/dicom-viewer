@@ -14,7 +14,7 @@ def read_analysis_status() -> AnalysisStatusResponse:
         status="ready" if settings.analysis_enabled else "planned",
         workloads=[
             "stress-strain modeling",
-            "diagnostic model experiments",
-            "derived measurement services",
+            "exploratory model experiments",
+            "derived measurement prototypes",
         ],
     )

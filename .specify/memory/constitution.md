@@ -1,21 +1,23 @@
 <!--
 Sync Impact Report
-- Version change: 0.0.0 -> 1.0.0
+- Version change: 1.0.0 -> 1.0.1
 - Modified principles:
-  - Template placeholder -> I. Clinical Safety Boundaries
-  - Template placeholder -> II. Contract-First Interfaces
-  - Template placeholder -> III. Verification Before Merge
-  - Template placeholder -> IV. Responsive Viewer Performance
-  - Template placeholder -> V. Incremental Simplicity
+  - I. Clinical Safety Boundaries -> I. Clinical Safety Boundaries
+    (clarified exploratory and non-diagnostic labeling expectations)
 - Added sections:
-  - Technical Guardrails
-  - Delivery Workflow
+  - None
 - Removed sections:
   - None
 - Templates requiring updates:
   - ✅ updated: .specify/templates/plan-template.md
   - ✅ updated: .specify/templates/spec-template.md
   - ✅ updated: .specify/templates/tasks-template.md
+  - not present: .specify/templates/commands/*.md
+- Additional sync updates:
+  - updated: README.md
+  - updated: frontend/README.md
+  - updated: frontend/src/App.tsx
+  - updated: backend/app/api/routes/analysis.py
 - Follow-up TODOs:
   - None
 -->
@@ -27,10 +29,13 @@ Sync Impact Report
 This repository MUST remain explicitly non-diagnostic unless a feature spec says
 otherwise and names the required validation standard. Features that display,
 transform, or analyze DICOM data MUST preserve source fidelity, identify derived
-data clearly, and avoid claims that imply clinical approval. Protected health
-information handling, retention, and transmission decisions MUST be stated in
-the spec whenever real patient data is in scope. Rationale: imaging software can
-create clinical risk through ambiguity long before it reaches production scale.
+data clearly, and label research or model-driven outputs as exploratory in
+user-facing and API-facing surfaces. Product copy, status text, and roadmap
+items MUST avoid claims that imply clinical approval or diagnostic readiness.
+Protected health information handling, retention, and transmission decisions
+MUST be stated in the spec whenever real patient data is in scope. Rationale:
+imaging software can create clinical risk through ambiguity long before it
+reaches production scale.
 
 ### II. Contract-First Interfaces
 Every change that affects communication between frontend, backend, browser-side
@@ -102,4 +107,4 @@ clarifications that do not change expected behavior. Compliance reviews MUST
 occur during planning and again before merge, with violations either corrected or
 explicitly justified in the implementation plan.
 
-**Version**: 1.0.0 | **Ratified**: 2026-04-04 | **Last Amended**: 2026-04-04
+**Version**: 1.0.1 | **Ratified**: 2026-04-04 | **Last Amended**: 2026-04-07
