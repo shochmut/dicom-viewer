@@ -31,13 +31,9 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-          cache: "poetry"
-          cache-dependency-path: backend/poetry.lock
 
       - name: Install Poetry
-        run: |
-          python -m pip install --user poetry
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+        run: python -m pip install poetry
 
       - name: Install backend dependencies
         run: poetry install --no-interaction --no-root
