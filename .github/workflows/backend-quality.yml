@@ -32,11 +32,11 @@ jobs:
         with:
           python-version: "3.12"
           cache: "poetry"
-          cache-dependency-path: backend/poetry.lock  
+          cache-dependency-path: backend/poetry.lock
 
       - name: Install Poetry
         run: |
-          python3 -m pip install --user poetry
+          python -m pip install --user poetry
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
       - name: Install backend dependencies
