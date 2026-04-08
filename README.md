@@ -36,13 +36,29 @@ npm install
 npm run dev
 ```
 
-Backend:
+Backend quality:
 
 ```bash
 cd backend
 poetry install
+poetry run ruff check .
+poetry run mypy app
+```
+
+Backend API:
+
+```bash
+cd backend
 poetry run uvicorn app.main:app --reload
 ```
+
+Pull requests and pushes that change backend quality inputs run the
+`backend-quality` workflow. If that workflow fails, rerun `poetry run ruff
+check .` and `poetry run mypy app` from `backend/` to reproduce the failure
+before pushing another update.
+
+If `poetry` or `ruff` is unavailable locally, rerun `poetry install` from
+`backend/` to restore the development toolchain.
 
 ## Next Steps
 

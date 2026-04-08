@@ -23,6 +23,14 @@ packages = [{ include = "app" }]
 ruff = "^0.12.10"
 mypy = "^1.17.1"
 
+[tool.ruff]
+target-version = "py312"
+src = ["app"]
+extend-exclude = ["sample_dicom"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"

@@ -47,7 +47,10 @@ def _normalize_dicom_date(value: str | None) -> str | None:
     return value
 
 
-def _iter_dicom_files(sample_dir: Path, allowed_file_suffixes: tuple[str, ...]) -> list[Path]:
+def _iter_dicom_files(
+    sample_dir: Path,
+    allowed_file_suffixes: tuple[str, ...],
+) -> list[Path]:
     if not sample_dir.exists():
         return []
 
@@ -71,8 +74,12 @@ def load_study_catalog(
         except (InvalidDicomError, FileNotFoundError, PermissionError, OSError):
             continue
 
-        study_uid = _read_text(dataset, "StudyInstanceUID") or f"study:{dicom_path.parent.name}"
-        series_uid = _read_text(dataset, "SeriesInstanceUID") or f"{study_uid}:{dicom_path.stem}"
+        study_uid = _read_text(dataset, "StudyInstanceUID") or (
+            f"study:{dicom_path.parent.name}"
+        )
+        series_uid = _read_text(dataset, "SeriesInstanceUID") or (
+            f"{study_uid}:{dicom_path.stem}"
+        )
 
         study = studies.setdefault(
             study_uid,
