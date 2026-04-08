@@ -1,9 +1,16 @@
 frontend/node_modules/
 frontend/dist/
 backend/.venv/
+backend/.ruff_cache/
+backend/.mypy_cache/
+backend/.pytest_cache/
 backend/sample_dicom/**/*.dcm
 backend/sample_dicom/**/*.dicom
 backend/**/__pycache__/
 *.pyc
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
 .agents/
 .codex
