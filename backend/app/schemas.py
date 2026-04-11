@@ -50,6 +50,24 @@ class StudySummaryResponse(ApiModel):
     series: list[SeriesSummaryResponse]
 
 
+class RenderableInstanceResponse(ApiModel):
+    instance_id: str
+    sop_instance_uid: str | None
+    instance_number: int | None
+    image_url: str
+    content_type: str
+
+
+class SeriesViewportResponse(ApiModel):
+    study_uid: str
+    series_uid: str
+    series_description: str | None
+    modality: str | None
+    instance_count: int
+    initial_image_index: int
+    instances: list[RenderableInstanceResponse]
+
+
 class AnalysisStatusResponse(ApiModel):
     enabled: bool
     status: Literal["planned", "ready"]
