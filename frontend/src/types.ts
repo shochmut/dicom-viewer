@@ -1,5 +1,6 @@
 export type ConnectionState = 'loading' | 'online' | 'offline'
 export type ViewerMode = 'stack' | 'mpr' | 'volume'
+export type ViewportLoadState = 'idle' | 'loading' | 'ready' | 'error'
 
 export interface HealthStatus {
   status: string
@@ -37,6 +38,24 @@ export interface StudySummary {
   instanceCount: number
   series: SeriesSummary[]
   source: 'filesystem' | 'demo'
+}
+
+export interface RenderableInstance {
+  instanceId: string
+  sopInstanceUid: string | null
+  instanceNumber: number | null
+  imageUrl: string
+  contentType: string
+}
+
+export interface ViewportSeriesManifest {
+  studyUid: string
+  seriesUid: string
+  seriesDescription: string | null
+  modality: string | null
+  instanceCount: number
+  initialImageIndex: number
+  instances: RenderableInstance[]
 }
 
 export interface BootstrapData {

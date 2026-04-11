@@ -1,10 +1,40 @@
 from dataclasses import dataclass, field
+from functools import lru_cache
+from hashlib import sha1
 from pathlib import Path
+from urllib.parse import quote
 
 import pydicom
 from pydicom.errors import InvalidDicomError
 
-from app.schemas import SeriesSummaryResponse, StudySummaryResponse
+from app.schemas import (
+    RenderableInstanceResponse,
+    SeriesSummaryResponse,
+    SeriesViewportResponse,
+    StudySummaryResponse,
+)
+
+DICOM_CONTENT_TYPE = "application/dicom"
+
+
+class CatalogLookupError(Exception):
+    """Base exception for sample DICOM catalog lookup errors."""
+
+
+class StudyNotFoundError(CatalogLookupError):
+    """Raised when a requested study is not present in the sample catalog."""
+
+
+class SeriesNotFoundError(CatalogLookupError):
+    """Raised when a requested series is not present in the sample catalog."""
+
+
+class NoRenderableInstancesError(CatalogLookupError):
+    """Raised when a requested series has no renderable instances."""
+
+
+class InstanceNotFoundError(CatalogLookupError):
+    """Raised when a requested instance file is not present in a renderable series."""
 
 
 @dataclass
@@ -28,6 +58,23 @@ class StudyAccumulator:
     series: dict[str, SeriesAccumulator] = field(default_factory=dict)
 
 
+@dataclass(frozen=True)
+class RenderableInstanceRecord:
+    instance_id: str
+    path: Path
+    sop_instance_uid: str | None
+    instance_number: int | None
+
+
+@dataclass(frozen=True)
+class SeriesViewportRecord:
+    study_uid: str
+    series_uid: str
+    series_description: str | None
+    modality: str | None
+    instances: tuple[RenderableInstanceRecord, ...]
+
+
 def _read_text(dataset: pydicom.dataset.FileDataset, attribute: str) -> str | None:
     value = dataset.get(attribute)
     if value is None:
@@ -35,6 +82,17 @@ def _read_text(dataset: pydicom.dataset.FileDataset, attribute: str) -> str | No
 
     text_value = str(value).strip()
     return text_value or None
+
+
+def _read_int(dataset: pydicom.dataset.FileDataset, attribute: str) -> int | None:
+    value = dataset.get(attribute)
+    if value is None:
+        return None
+
+    try:
+        return int(str(value).strip())
+    except (TypeError, ValueError):
+        return None
 
 
 def _normalize_dicom_date(value: str | None) -> str | None:
@@ -45,6 +103,31 @@ def _normalize_dicom_date(value: str | None) -> str | None:
         return f"{value[0:4]}-{value[4:6]}-{value[6:8]}"
 
     return value
+
+
+def _resolve_study_uid(dataset: pydicom.dataset.FileDataset, dicom_path: Path) -> str:
+    return _read_text(dataset, "StudyInstanceUID") or f"study:{dicom_path.parent.name}"
+
+
+def _resolve_series_uid(
+    dataset: pydicom.dataset.FileDataset,
+    dicom_path: Path,
+    study_uid: str,
+) -> str:
+    return _read_text(dataset, "SeriesInstanceUID") or f"{study_uid}:{dicom_path.stem}"
+
+
+def _is_renderable_dataset(dataset: pydicom.dataset.FileDataset) -> bool:
+    return (
+        dataset.get("PixelData") is not None
+        and dataset.get("Rows") is not None
+        and dataset.get("Columns") is not None
+    )
+
+
+def _build_instance_id(sample_dir: Path, dicom_path: Path) -> str:
+    relative_path = dicom_path.resolve().relative_to(sample_dir.resolve()).as_posix()
+    return sha1(relative_path.encode("utf-8")).hexdigest()[:16]
 
 
 def _iter_dicom_files(
@@ -74,12 +157,8 @@ def load_study_catalog(
         except (InvalidDicomError, FileNotFoundError, PermissionError, OSError):
             continue
 
-        study_uid = _read_text(dataset, "StudyInstanceUID") or (
-            f"study:{dicom_path.parent.name}"
-        )
-        series_uid = _read_text(dataset, "SeriesInstanceUID") or (
-            f"{study_uid}:{dicom_path.stem}"
-        )
+        study_uid = _resolve_study_uid(dataset, dicom_path)
+        series_uid = _resolve_series_uid(dataset, dicom_path, study_uid)
 
         study = studies.setdefault(
             study_uid,
@@ -128,13 +207,13 @@ def load_study_catalog(
             source="filesystem",
             series=[
                 SeriesSummaryResponse(
-                    uid=series.uid,
-                    modality=series.modality,
-                    description=series.description,
-                    body_part=series.body_part,
-                    instance_count=series.instance_count,
+                    uid=current_series.uid,
+                    modality=current_series.modality,
+                    description=current_series.description,
+                    body_part=current_series.body_part,
+                    instance_count=current_series.instance_count,
                 )
-                for series in sorted(
+                for current_series in sorted(
                     study.series.values(),
                     key=lambda current_series: (
                         current_series.modality or "",
@@ -154,3 +233,138 @@ def load_study_catalog(
             reverse=True,
         )
     ]
+
+
+@lru_cache(maxsize=128)
+def _load_series_viewport_record(
+    sample_dir: Path,
+    allowed_file_suffixes: tuple[str, ...],
+    study_uid: str,
+    series_uid: str,
+) -> SeriesViewportRecord:
+    matching_study_found = False
+    matching_series_found = False
+    series_description: str | None = None
+    modality: str | None = None
+    instances: list[RenderableInstanceRecord] = []
+
+    for dicom_path in _iter_dicom_files(sample_dir, allowed_file_suffixes):
+        try:
+            dataset = pydicom.dcmread(dicom_path, force=True)
+        except (InvalidDicomError, FileNotFoundError, PermissionError, OSError):
+            continue
+
+        current_study_uid = _resolve_study_uid(dataset, dicom_path)
+        if current_study_uid != study_uid:
+            continue
+
+        matching_study_found = True
+        current_series_uid = _resolve_series_uid(dataset, dicom_path, current_study_uid)
+        if current_series_uid != series_uid:
+            continue
+
+        matching_series_found = True
+        series_description = series_description or _read_text(
+            dataset,
+            "SeriesDescription",
+        )
+        modality = modality or _read_text(dataset, "Modality")
+
+        if not _is_renderable_dataset(dataset):
+            continue
+
+        instances.append(
+            RenderableInstanceRecord(
+                instance_id=_build_instance_id(sample_dir, dicom_path),
+                path=dicom_path.resolve(),
+                sop_instance_uid=_read_text(dataset, "SOPInstanceUID"),
+                instance_number=_read_int(dataset, "InstanceNumber"),
+            )
+        )
+
+    if not matching_study_found:
+        raise StudyNotFoundError(study_uid)
+
+    if not matching_series_found:
+        raise SeriesNotFoundError(series_uid)
+
+    if not instances:
+        raise NoRenderableInstancesError(series_uid)
+
+    instances.sort(
+        key=lambda current_instance: (
+            current_instance.instance_number
+            if current_instance.instance_number is not None
+            else float("inf"),
+            current_instance.sop_instance_uid or "",
+            current_instance.path.as_posix(),
+        )
+    )
+
+    return SeriesViewportRecord(
+        study_uid=study_uid,
+        series_uid=series_uid,
+        series_description=series_description,
+        modality=modality,
+        instances=tuple(instances),
+    )
+
+
+def load_series_viewport_manifest(
+    sample_dir: Path,
+    allowed_file_suffixes: tuple[str, ...],
+    study_uid: str,
+    series_uid: str,
+    api_prefix: str,
+) -> SeriesViewportResponse:
+    viewport_record = _load_series_viewport_record(
+        sample_dir,
+        allowed_file_suffixes,
+        study_uid,
+        series_uid,
+    )
+    encoded_study_uid = quote(study_uid, safe="")
+    encoded_series_uid = quote(series_uid, safe="")
+
+    return SeriesViewportResponse(
+        study_uid=viewport_record.study_uid,
+        series_uid=viewport_record.series_uid,
+        series_description=viewport_record.series_description,
+        modality=viewport_record.modality,
+        instance_count=len(viewport_record.instances),
+        initial_image_index=0,
+        instances=[
+            RenderableInstanceResponse(
+                instance_id=current_instance.instance_id,
+                sop_instance_uid=current_instance.sop_instance_uid,
+                instance_number=current_instance.instance_number,
+                image_url=(
+                    f"{api_prefix}/studies/{encoded_study_uid}/series/"
+                    f"{encoded_series_uid}/instances/{current_instance.instance_id}/file"
+                ),
+                content_type=DICOM_CONTENT_TYPE,
+            )
+            for current_instance in viewport_record.instances
+        ],
+    )
+
+
+def resolve_renderable_instance_path(
+    sample_dir: Path,
+    allowed_file_suffixes: tuple[str, ...],
+    study_uid: str,
+    series_uid: str,
+    instance_id: str,
+) -> Path:
+    viewport_record = _load_series_viewport_record(
+        sample_dir,
+        allowed_file_suffixes,
+        study_uid,
+        series_uid,
+    )
+
+    for current_instance in viewport_record.instances:
+        if current_instance.instance_id == instance_id:
+            return current_instance.path
+
+    raise InstanceNotFoundError(instance_id)

@@ -1,16 +1,24 @@
 import { useEffect, useState } from 'react'
 import './App.css'
-import { getApiBaseUrl, loadBootstrapData } from './lib/api'
-import type { BootstrapData, ConnectionState, StudySummary, ViewerMode } from './types'
+import CornerstoneViewport from './components/CornerstoneViewport'
+import { getApiBaseUrl, loadBootstrapData, loadSeriesViewportManifest } from './lib/api'
+import type {
+  BootstrapData,
+  ConnectionState,
+  SeriesSummary,
+  StudySummary,
+  ViewerMode,
+  ViewportLoadState,
+} from './types'
 
-const viewerModes: Array<{ id: ViewerMode; label: string; detail: string }> = [
-  { id: 'stack', label: 'Stack', detail: 'Single-series review' },
-  { id: 'mpr', label: 'MPR', detail: 'Cross-sectional reformatting' },
-  { id: 'volume', label: 'Volume', detail: '3D rendering lane' },
+const viewerModes: Array<{ id: ViewerMode; label: string; detail: string; available: boolean }> = [
+  { id: 'stack', label: 'Stack', detail: 'Active sample review lane', available: true },
+  { id: 'mpr', label: 'MPR', detail: 'Planned follow-on slice', available: false },
+  { id: 'volume', label: 'Volume', detail: 'Planned 3D lane', available: false },
 ]
 
 const backlogItems = [
-  'Attach a Cornerstone 3D rendering engine to the viewport mount point.',
+  'Add stack scrolling and additional review tools once the base viewport is stable.',
   'Wire DICOMweb study retrieval through the FastAPI proxy or direct CORS mode.',
   'Add measurement, annotations, and future exploratory stress-strain workflows.',
 ]
@@ -48,14 +56,48 @@ function getPrimaryStudy(studies: StudySummary[], selectedStudyUid: string | nul
   return studies.find((study) => study.uid === selectedStudyUid) ?? studies[0] ?? null
 }
 
+function getPrimarySeries(
+  series: SeriesSummary[],
+  selectedSeriesUid: string | null,
+): SeriesSummary | null {
+  return series.find((currentSeries) => currentSeries.uid === selectedSeriesUid) ?? series[0] ?? null
+}
+
+async function findFirstRenderableSelection(
+  studies: StudySummary[],
+  signal: AbortSignal,
+): Promise<{ studyUid: string; seriesUid: string } | null> {
+  for (const study of studies) {
+    for (const series of study.series) {
+      try {
+        const manifest = await loadSeriesViewportManifest(study.uid, series.uid, { signal })
+        if (manifest.instanceCount > 0) {
+          return {
+            studyUid: study.uid,
+            seriesUid: series.uid,
+          }
+        }
+      } catch {
+        continue
+      }
+    }
+  }
+
+  return null
+}
+
 function App() {
   const [bootstrap, setBootstrap] = useState<BootstrapData | null>(null)
   const [connectionState, setConnectionState] = useState<ConnectionState>('loading')
   const [selectedStudyUid, setSelectedStudyUid] = useState<string | null>(null)
+  const [selectedSeriesUid, setSelectedSeriesUid] = useState<string | null>(null)
   const [viewerMode, setViewerMode] = useState<ViewerMode>('stack')
+  const [viewerLoadState, setViewerLoadState] = useState<ViewportLoadState>('loading')
+  const [viewerMessage, setViewerMessage] = useState<string | null>('Checking viewer services.')
 
   useEffect(() => {
     let isActive = true
+    const abortController = new AbortController()
 
     async function hydrate() {
       const data = await loadBootstrapData()
@@ -66,22 +108,72 @@ function App() {
 
       setBootstrap(data)
       setConnectionState(data.connection)
-      setSelectedStudyUid((currentStudyUid) => currentStudyUid ?? data.studies[0]?.uid ?? null)
+
+      const defaultStudyUid = data.studies[0]?.uid ?? null
+      const defaultSeriesUid = data.studies[0]?.series[0]?.uid ?? null
+      let initialSelection = {
+        studyUid: defaultStudyUid,
+        seriesUid: defaultSeriesUid,
+      }
+
+      if (data.connection === 'online') {
+        const firstRenderableSelection = await findFirstRenderableSelection(
+          data.studies,
+          abortController.signal,
+        )
+
+        if (!isActive || abortController.signal.aborted) {
+          return
+        }
+
+        if (firstRenderableSelection) {
+          initialSelection = firstRenderableSelection
+        }
+      }
+
+      setSelectedStudyUid((currentStudyUid) => currentStudyUid ?? initialSelection.studyUid ?? null)
+      setSelectedSeriesUid(
+        (currentSeriesUid) => currentSeriesUid ?? initialSelection.seriesUid ?? null,
+      )
     }
 
     void hydrate()
 
     return () => {
       isActive = false
+      abortController.abort()
     }
   }, [])
 
   const studies = bootstrap?.studies ?? []
   const selectedStudy = getPrimaryStudy(studies, selectedStudyUid)
+  const selectedSeries = getPrimarySeries(selectedStudy?.series ?? [], selectedSeriesUid)
   const seriesCount = studies.reduce((count, study) => count + study.series.length, 0)
   const instanceCount = studies.reduce((count, study) => count + study.instanceCount, 0)
   const apiConfig = bootstrap?.config
   const connectionLabel = describeConnection(connectionState)
+  const activeViewerMode = viewerModes.find((mode) => mode.id === viewerMode) ?? viewerModes[0]
+  const viewerStatusLabel =
+    viewerLoadState === 'ready' ? 'Sample series ready' : viewerMessage ?? 'Viewer idle'
+
+  useEffect(() => {
+    if (!selectedStudy) {
+      if (selectedSeriesUid !== null) {
+        setSelectedSeriesUid(null)
+      }
+      return
+    }
+
+    if (!selectedStudy.series.some((series) => series.uid === selectedSeriesUid)) {
+      setSelectedSeriesUid(selectedStudy.series[0]?.uid ?? null)
+    }
+  }, [selectedSeriesUid, selectedStudy])
+
+  function handleStudySelection(studyUid: string) {
+    const nextStudy = studies.find((study) => study.uid === studyUid)
+    setSelectedStudyUid(studyUid)
+    setSelectedSeriesUid(nextStudy?.series[0]?.uid ?? null)
+  }
 
   return (
     <main className="app-shell">
@@ -144,7 +236,7 @@ function App() {
                   key={study.uid}
                   type="button"
                   className={`study-card ${isSelected ? 'study-card--active' : ''}`}
-                  onClick={() => setSelectedStudyUid(study.uid)}
+                  onClick={() => handleStudySelection(study.uid)}
                 >
                   <span className="study-card__patient">
                     {study.patientName ?? study.patientId ?? 'Unidentified patient'}
@@ -168,7 +260,7 @@ function App() {
           <div className="panel-heading">
             <div>
               <p className="panel-kicker">Viewer Shell</p>
-              <h2>{selectedStudy?.description ?? 'Cornerstone viewport mount point'}</h2>
+              <h2>{selectedSeries?.description ?? selectedStudy?.description ?? 'Sample viewer'}</h2>
             </div>
             <div className="mode-switch" role="tablist" aria-label="Viewer mode">
               {viewerModes.map((mode) => (
@@ -178,6 +270,7 @@ function App() {
                   className={`mode-switch__button ${
                     viewerMode === mode.id ? 'mode-switch__button--active' : ''
                   }`}
+                  disabled={!mode.available}
                   onClick={() => setViewerMode(mode.id)}
                 >
                   {mode.label}
@@ -188,15 +281,20 @@ function App() {
 
           <div className="viewer-stage">
             <div className="viewer-stage__overlay">
-              <span>Viewport target: `#cornerstone-viewport`</span>
-              <span>{viewerModes.find((mode) => mode.id === viewerMode)?.detail}</span>
+              <span>{viewerStatusLabel}</span>
+              <span>
+                {viewerLoadState === 'ready' ? 'Drag to pan · Wheel to zoom' : activeViewerMode.detail}
+              </span>
             </div>
-            <div id="cornerstone-viewport" className="viewport-target">
-              <div className="viewport-target__callout">
-                <p>Rendering engine not attached yet</p>
-                <strong>Scaffold ready for Cornerstone 3D initialization</strong>
-              </div>
-            </div>
+            <CornerstoneViewport
+              connectionState={connectionState}
+              studyUid={selectedStudy?.uid ?? null}
+              seriesUid={selectedSeries?.uid ?? null}
+              onStateChange={(state, message) => {
+                setViewerLoadState(state)
+                setViewerMessage(message)
+              }}
+            />
           </div>
 
           <div className="viewer-summary">
@@ -205,12 +303,12 @@ function App() {
               <strong>{selectedStudy?.patientName ?? selectedStudy?.patientId ?? 'Pending data'}</strong>
             </article>
             <article className="summary-card">
-              <span className="summary-label">Accession</span>
-              <strong>{selectedStudy?.accessionNumber ?? 'Not assigned'}</strong>
+              <span className="summary-label">Active Series</span>
+              <strong>{selectedSeries?.description ?? 'Select a series'}</strong>
             </article>
             <article className="summary-card">
-              <span className="summary-label">Study UID</span>
-              <strong>{selectedStudy?.uid ?? 'Awaiting selection'}</strong>
+              <span className="summary-label">Series UID</span>
+              <strong>{selectedSeries?.uid ?? 'Awaiting selection'}</strong>
             </article>
           </div>
         </section>
@@ -221,12 +319,17 @@ function App() {
               <p className="panel-kicker">Series Inspector</p>
               <h2>Acquisition breakdown</h2>
             </div>
-            <span className="panel-tag">{selectedStudy?.series.length ?? 0} lanes</span>
+            <span className="panel-tag">{selectedSeries?.modality ?? 'pending'}</span>
           </div>
 
           <div className="series-list" role="list">
             {selectedStudy?.series.map((series) => (
-              <article key={series.uid} className="series-row">
+              <button
+                key={series.uid}
+                type="button"
+                className={`series-row ${series.uid === selectedSeries?.uid ? 'series-row--active' : ''}`}
+                onClick={() => setSelectedSeriesUid(series.uid)}
+              >
                 <div>
                   <p className="series-row__modality">{series.modality ?? 'OT'}</p>
                   <strong>{series.description ?? 'Untitled series'}</strong>
@@ -235,7 +338,7 @@ function App() {
                   <span>{series.instanceCount} images</span>
                   <span>{series.bodyPart ?? 'Body part pending'}</span>
                 </div>
-              </article>
+              </button>
             ))}
 
             {!selectedStudy && <div className="study-empty">Select a study to inspect its series.</div>}
