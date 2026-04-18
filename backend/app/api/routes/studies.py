@@ -56,7 +56,12 @@ def get_series_viewport(study_uid: str, series_uid: str) -> SeriesViewportRespon
             series_uid,
             settings.api_prefix,
         )
-    except (StudyNotFoundError, SeriesNotFoundError) as error:
+    except StudyNotFoundError as error:
+        raise HTTPException(
+            status_code=404,
+            detail="Study not found",
+        ) from error
+    except SeriesNotFoundError as error:
         raise HTTPException(
             status_code=404,
             detail="Series not found for requested study",
@@ -84,7 +89,9 @@ def get_series_instance_file(
             series_uid,
             instance_id,
         )
-    except (StudyNotFoundError, SeriesNotFoundError, InstanceNotFoundError) as error:
+    except StudyNotFoundError as error:
+        raise HTTPException(status_code=404, detail="Study not found") from error
+    except (SeriesNotFoundError, InstanceNotFoundError) as error:
         detail = (
             "Instance file not found"
             if isinstance(error, InstanceNotFoundError)

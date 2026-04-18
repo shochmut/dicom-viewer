@@ -130,6 +130,10 @@ def _build_instance_id(sample_dir: Path, dicom_path: Path) -> str:
     return sha1(relative_path.encode("utf-8")).hexdigest()[:16]
 
 
+def _normalize_sample_dir_cache_key(sample_dir: Path) -> str:
+    return str(sample_dir.resolve())
+
+
 def _iter_dicom_files(
     sample_dir: Path,
     allowed_file_suffixes: tuple[str, ...],
@@ -236,12 +240,13 @@ def load_study_catalog(
 
 
 @lru_cache(maxsize=128)
-def _load_series_viewport_record(
-    sample_dir: Path,
+def _load_series_viewport_record_cached(
+    sample_dir_key: str,
     allowed_file_suffixes: tuple[str, ...],
     study_uid: str,
     series_uid: str,
 ) -> SeriesViewportRecord:
+    sample_dir = Path(sample_dir_key)
     matching_study_found = False
     matching_series_found = False
     series_description: str | None = None
@@ -307,6 +312,20 @@ def _load_series_viewport_record(
         series_description=series_description,
         modality=modality,
         instances=tuple(instances),
+    )
+
+
+def _load_series_viewport_record(
+    sample_dir: Path,
+    allowed_file_suffixes: tuple[str, ...],
+    study_uid: str,
+    series_uid: str,
+) -> SeriesViewportRecord:
+    return _load_series_viewport_record_cached(
+        _normalize_sample_dir_cache_key(sample_dir),
+        allowed_file_suffixes,
+        study_uid,
+        series_uid,
     )
 
 

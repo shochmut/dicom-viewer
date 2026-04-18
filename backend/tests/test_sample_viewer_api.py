@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Iterator
 from urllib.parse import quote
@@ -78,9 +79,35 @@ def get_first_sample_selection(client: TestClient) -> tuple[str, str]:
     response = client.get("/api/v1/studies")
     response.raise_for_status()
     payload = response.json()
+    assert payload, "Expected at least one study in the sample DICOM catalog"
     first_study = payload[0]
+    assert first_study["series"], (
+        "Expected the first sample study to include at least one series"
+    )
     first_series = first_study["series"][0]
     return first_study["uid"], first_series["uid"]
+
+
+@contextmanager
+def create_metadata_only_selection(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> Iterator[tuple[TestClient, str, str]]:
+    study_uid = generate_uid()
+    series_uid = generate_uid()
+    series_dir = tmp_path / "study-a" / "series-a"
+    series_dir.mkdir(parents=True)
+    write_test_dicom(
+        series_dir / "metadata-only.dcm",
+        study_uid,
+        series_uid,
+        with_pixel_data=False,
+    )
+
+    with create_test_client(monkeypatch, tmp_path) as client:
+        yield client, study_uid, series_uid
+
+    get_settings.cache_clear()
 
 
 def test_viewport_manifest_returns_renderable_instances(client: TestClient) -> None:
@@ -132,28 +159,29 @@ def test_viewport_manifest_returns_not_found_for_missing_series(
     assert response.json() == {"detail": "Series not found for requested study"}
 
 
+def test_viewport_manifest_returns_not_found_for_missing_study(
+    client: TestClient,
+) -> None:
+    response = client.get(
+        "/api/v1/studies/nonexistent-study/series/nonexistent-series/viewport"
+    )
+
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Study not found"}
+
+
 def test_viewport_manifest_returns_conflict_for_non_renderable_series(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    study_uid = generate_uid()
-    series_uid = generate_uid()
-    series_dir = tmp_path / "study-a" / "series-a"
-    series_dir.mkdir(parents=True)
-    write_test_dicom(
-        series_dir / "metadata-only.dcm",
-        study_uid,
-        series_uid,
-        with_pixel_data=False,
-    )
-
-    with create_test_client(monkeypatch, tmp_path) as current_client:
+    with create_metadata_only_selection(
+        tmp_path,
+        monkeypatch,
+    ) as (current_client, study_uid, series_uid):
         response = current_client.get(
             "/api/v1/studies/"
             f"{quote(study_uid, safe='')}/series/{quote(series_uid, safe='')}/viewport"
         )
-
-    get_settings.cache_clear()
 
     assert response.status_code == 409
     assert response.json() == {
@@ -174,3 +202,24 @@ def test_instance_file_endpoint_returns_not_found_for_missing_instance(
 
     assert response.status_code == 404
     assert response.json() == {"detail": "Instance file not found"}
+
+
+def test_instance_file_endpoint_returns_conflict_for_non_renderable_series(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    with create_metadata_only_selection(
+        tmp_path,
+        monkeypatch,
+    ) as (current_client, study_uid, series_uid):
+        response = current_client.get(
+            "/api/v1/studies/"
+            f"{quote(study_uid, safe='')}/series/"
+            f"{quote(series_uid, safe='')}/instances/"
+            "any-instance-id/file"
+        )
+
+    assert response.status_code == 409
+    assert response.json() == {
+        "detail": "Selected series has no renderable DICOM instances"
+    }
