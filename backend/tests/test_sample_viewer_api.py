@@ -81,7 +81,9 @@ def get_first_sample_selection(client: TestClient) -> tuple[str, str]:
     payload = response.json()
     assert payload, "Expected at least one study in the sample DICOM catalog"
     first_study = payload[0]
-    assert first_study["series"], "Expected the first sample study to include at least one series"
+    assert first_study["series"], (
+        "Expected the first sample study to include at least one series"
+    )
     first_series = first_study["series"][0]
     return first_study["uid"], first_series["uid"]
 
@@ -212,7 +214,8 @@ def test_instance_file_endpoint_returns_conflict_for_non_renderable_series(
     ) as (current_client, study_uid, series_uid):
         response = current_client.get(
             "/api/v1/studies/"
-            f"{quote(study_uid, safe='')}/series/{quote(series_uid, safe='')}/instances/"
+            f"{quote(study_uid, safe='')}/series/"
+            f"{quote(series_uid, safe='')}/instances/"
             "any-instance-id/file"
         )
 
