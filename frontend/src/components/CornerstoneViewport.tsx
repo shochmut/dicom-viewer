@@ -10,6 +10,15 @@ interface CornerstoneViewportProps {
   onStateChange?: (state: ViewportLoadState, message: string | null) => void
 }
 
+function isAbortError(error: unknown): boolean {
+  return (
+    (typeof DOMException !== 'undefined' &&
+      error instanceof DOMException &&
+      error.name === 'AbortError') ||
+    (error instanceof Error && error.name === 'AbortError')
+  )
+}
+
 function normalizeErrorMessage(error: unknown): string {
   if (error instanceof Error) {
     return error.message
@@ -127,6 +136,8 @@ export default function CornerstoneViewport({
       return
     }
 
+    const activeStudyUid = studyUid
+    const activeSeriesUid = seriesUid
     const abortController = new AbortController()
     const loadSequence = ++loadSequenceRef.current
 
@@ -134,7 +145,7 @@ export default function CornerstoneViewport({
 
     async function loadSeries() {
       try {
-        const manifest = await loadSeriesViewportManifest(studyUid, seriesUid, {
+        const manifest = await loadSeriesViewportManifest(activeStudyUid, activeSeriesUid, {
           signal: abortController.signal,
         })
 
@@ -158,6 +169,11 @@ export default function CornerstoneViewport({
         )
       } catch (error) {
         if (abortController.signal.aborted || loadSequence !== loadSequenceRef.current) {
+          return
+        }
+
+        if (isAbortError(error)) {
+          applyState('loading', 'Loading sample series.')
           return
         }
 

@@ -7,20 +7,21 @@ export interface CornerstoneViewportController {
   destroy: () => void
 }
 
-let cornerstoneReady = false
-let dicomLoaderReady = false
 let nextViewportSuffix = 0
+let cornerstoneInitPromise: Promise<void> | null = null
 
-function ensureCornerstoneReady(): void {
-  if (!cornerstoneReady) {
-    coreInit()
-    cornerstoneReady = true
+async function ensureCornerstoneReady(): Promise<void> {
+  if (!cornerstoneInitPromise) {
+    cornerstoneInitPromise = (async () => {
+      await coreInit()
+      await dicomImageLoaderInit({ maxWebWorkers: 1 })
+    })().catch((error: unknown) => {
+      cornerstoneInitPromise = null
+      throw error
+    })
   }
 
-  if (!dicomLoaderReady) {
-    dicomImageLoaderInit({ maxWebWorkers: 1 })
-    dicomLoaderReady = true
-  }
+  await cornerstoneInitPromise
 }
 
 export function buildWadoImageIds(instanceUrls: string[]): string[] {
@@ -30,7 +31,7 @@ export function buildWadoImageIds(instanceUrls: string[]): string[] {
 export async function createCornerstoneViewport(
   element: HTMLDivElement,
 ): Promise<CornerstoneViewportController> {
-  ensureCornerstoneReady()
+  await ensureCornerstoneReady()
 
   const viewportSuffix = `${++nextViewportSuffix}`
   const renderingEngineId = `sample-rendering-engine-${viewportSuffix}`
