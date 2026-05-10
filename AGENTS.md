@@ -1,6 +1,6 @@
 # dicom-viewer Development Guidelines
 
-Auto-generated from all feature plans. Last updated: 2026-04-08
+Auto-generated from all feature plans. Last updated: 2026-05-10
 
 ## Active Technologies
 - TypeScript 5.8 on the frontend and Python 3.12 on the backend + React 19, Vite 7, FastAPI, pydicom, `@cornerstonejs/core`, planned `@cornerstonejs/tools`, planned `@cornerstonejs/dicom-image-loader` (002-cornerstone-basic-viewer)
