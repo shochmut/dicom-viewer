@@ -324,7 +324,20 @@
   cursor: grab;
 }
 
+.viewport-target--volume {
+  cursor: default;
+}
+
+.viewport-target--volume-ready {
+  cursor: grab;
+}
+
 .viewport-target:active {
+  cursor: grabbing;
+}
+
+.viewport-target--dragging,
+.viewport-target--dragging:active {
   cursor: grabbing;
 }
 
@@ -365,6 +378,11 @@
   font-size: 0.88rem;
   backdrop-filter: blur(8px);
   pointer-events: none;
+}
+
+.viewport-shell--volume .viewport-hint {
+  max-width: calc(100% - 36px);
+  color: rgba(244, 248, 247, 0.92);
 }
 
 .viewport-target__callout p {

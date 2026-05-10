@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import './App.css'
 import CornerstoneViewport from './components/CornerstoneViewport'
+import VolumeViewport from './components/VolumeViewport'
 import { getApiBaseUrl, loadBootstrapData, loadSeriesViewportManifest } from './lib/api'
 import type {
   BootstrapData,
@@ -14,7 +15,7 @@ import type {
 const viewerModes: Array<{ id: ViewerMode; label: string; detail: string; available: boolean }> = [
   { id: 'stack', label: 'Stack', detail: 'Active sample review lane', available: true },
   { id: 'mpr', label: 'MPR', detail: 'Planned follow-on slice', available: false },
-  { id: 'volume', label: 'Volume', detail: 'Planned 3D lane', available: false },
+  { id: 'volume', label: 'Volume', detail: 'Non-diagnostic 3D volume view', available: true },
 ]
 
 const backlogItems = [
@@ -154,7 +155,17 @@ function App() {
   const connectionLabel = describeConnection(connectionState)
   const activeViewerMode = viewerModes.find((mode) => mode.id === viewerMode) ?? viewerModes[0]
   const viewerStatusLabel =
-    viewerLoadState === 'ready' ? 'Sample series ready' : viewerMessage ?? 'Viewer idle'
+    viewerLoadState === 'ready'
+      ? viewerMode === 'volume'
+        ? '3D volume ready'
+        : 'Sample series ready'
+      : viewerMessage ?? 'Viewer idle'
+  const viewerInteractionHint =
+    viewerLoadState === 'ready'
+      ? viewerMode === 'volume'
+        ? 'Drag to rotate - Wheel to zoom'
+        : 'Drag to pan - Wheel to zoom'
+      : activeViewerMode.detail
 
   useEffect(() => {
     if (!selectedStudy) {
@@ -282,19 +293,29 @@ function App() {
           <div className="viewer-stage">
             <div className="viewer-stage__overlay">
               <span>{viewerStatusLabel}</span>
-              <span>
-                {viewerLoadState === 'ready' ? 'Drag to pan · Wheel to zoom' : activeViewerMode.detail}
-              </span>
+              <span>{viewerInteractionHint}</span>
             </div>
-            <CornerstoneViewport
-              connectionState={connectionState}
-              studyUid={selectedStudy?.uid ?? null}
-              seriesUid={selectedSeries?.uid ?? null}
-              onStateChange={(state, message) => {
-                setViewerLoadState(state)
-                setViewerMessage(message)
-              }}
-            />
+            {viewerMode === 'volume' ? (
+              <VolumeViewport
+                connectionState={connectionState}
+                studyUid={selectedStudy?.uid ?? null}
+                seriesUid={selectedSeries?.uid ?? null}
+                onStateChange={(state, message) => {
+                  setViewerLoadState(state)
+                  setViewerMessage(message)
+                }}
+              />
+            ) : (
+              <CornerstoneViewport
+                connectionState={connectionState}
+                studyUid={selectedStudy?.uid ?? null}
+                seriesUid={selectedSeries?.uid ?? null}
+                onStateChange={(state, message) => {
+                  setViewerLoadState(state)
+                  setViewerMessage(message)
+                }}
+              />
+            )}
           </div>
 
           <div className="viewer-summary">
