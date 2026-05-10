@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { loadSeriesViewportManifest, resolveApiUrl } from '../lib/api'
-import { buildWadoImageIds, createCornerstoneVolumeViewport } from '../lib/cornerstoneViewer'
+import {
+  MIN_VOLUME_DICOM_INSTANCES,
+  VOLUME_DICOM_INSTANCE_REQUIREMENT_MESSAGE,
+  buildWadoImageIds,
+  createCornerstoneVolumeViewport,
+} from '../lib/cornerstoneViewer'
 import type { ConnectionState, ViewportLoadState } from '../types'
 
 interface VolumeViewportProps {
@@ -156,8 +161,8 @@ export default function VolumeViewport({
           return
         }
 
-        if (manifest.instances.length < 2) {
-          throw new Error('Selected series needs at least two DICOM images for 3D volume viewing.')
+        if (manifest.instances.length < MIN_VOLUME_DICOM_INSTANCES) {
+          throw new Error(VOLUME_DICOM_INSTANCE_REQUIREMENT_MESSAGE)
         }
 
         const imageIds = buildWadoImageIds(

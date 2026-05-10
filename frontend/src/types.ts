@@ -1,8 +1,6 @@
 export type ConnectionState = 'loading' | 'online' | 'offline'
 export type ViewerMode = 'stack' | 'mpr' | 'volume'
 export type ViewportLoadState = 'idle' | 'loading' | 'ready' | 'error'
-export type VolumeViewportStatus = ViewportLoadState
-export type VolumeInteractionState = 'disabled' | 'ready' | 'rotating'
 
 export interface HealthStatus {
   status: string

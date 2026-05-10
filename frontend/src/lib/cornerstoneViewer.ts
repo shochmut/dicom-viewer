@@ -25,6 +25,10 @@ export interface CornerstoneVolumeViewportController {
 let nextViewportSuffix = 0
 let cornerstoneInitPromise: Promise<void> | null = null
 
+export const MIN_VOLUME_DICOM_INSTANCES = 2
+export const VOLUME_DICOM_INSTANCE_REQUIREMENT_MESSAGE =
+  'Selected series needs at least two renderable DICOM instances for 3D volume viewing.'
+
 async function ensureCornerstoneReady(): Promise<void> {
   if (!cornerstoneInitPromise) {
     cornerstoneInitPromise = (async () => {
@@ -303,8 +307,8 @@ export async function createCornerstoneVolumeViewport(
         throw new Error('The 3D volume viewport is not ready.')
       }
 
-      if (imageIds.length < 2) {
-        throw new Error('Selected series needs at least two renderable DICOM instances for 3D volume viewing.')
+      if (imageIds.length < MIN_VOLUME_DICOM_INSTANCES) {
+        throw new Error(VOLUME_DICOM_INSTANCE_REQUIREMENT_MESSAGE)
       }
 
       const volumeId = `cornerstoneStreamingImageVolume:volume-${viewportSuffix}-${Date.now()}`
